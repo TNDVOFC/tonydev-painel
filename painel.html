@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Painel Admin - Tony Dev</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #000;
+    color: #fff;
+    margin: 0; padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+  header {
+    background-color: #b30000;
+    width: 100%;
+    padding: 1rem 0;
+    text-align: center;
+    font-size: 2rem;
+    font-weight: bold;
+    box-shadow: 0 0 15px #b30000;
+  }
+  main {
+    flex: 1;
+    max-width: 600px;
+    width: 90%;
+    padding: 1rem;
+  }
+  #loginForm, #adminPanel {
+    background: #8b0000;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 0 20px #8b0000;
+  }
+  input[type="text"], input[type="password"], textarea {
+    width: 100%;
+    padding: 0.7rem;
+    margin: 0.5rem 0 1rem 0;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+  }
+  button {
+    background-color: #ff0000;
+    color: white;
+    border: none;
+    padding: 0.7rem 1.2rem;
+    font-size: 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 0 10px #ff4d4d;
+    transition: background 0.3s ease;
+  }
+  button:hover {
+    background-color: #cc0000;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+  ul li {
+    background: #b30000;
+    margin: 0.5rem 0;
+    padding: 0.8rem;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  ul li button {
+    background: #800000;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+
+<header>Painel Admin - Tony Dev</header>
+
+<main>
+  <!-- Login -->
+  <div id="loginForm">
+    <h2>Login</h2>
+    <input type="text" id="username" placeholder="Usuário" />
+    <input type="password" id="password" placeholder="Senha" />
+    <button onclick="login()">Entrar</button>
+    <p id="loginMsg" style="color:#ff4444;"></p>
+  </div>
+
+  <!-- Admin Panel -->
+  <div id="adminPanel" style="display:none;">
+    <h2>Gerenciar Scripts</h2>
+
+    <textarea id="newScript" rows="6" placeholder="Cole seu script aqui..."></textarea>
+    <button onclick="addScript()">Adicionar Script</button>
+
+    <h3>Scripts adicionados:</h3>
+    <ul id="scriptsList"></ul>
+
+    <button onclick="logout()" style="margin-top: 1rem; background:#660000;">Sair</button>
+  </div>
+</main>
+
+<script>
+  // Usuário e senha fixos (altere aqui)
+  const USER = 'tony';
+  const PASS = 'senha123';
+
+  // Elementos
+  const loginForm = document.getElementById('loginForm');
+  const adminPanel = document.getElementById('adminPanel');
+  const loginMsg = document.getElementById('loginMsg');
+  const scriptsList = document.getElementById('scriptsList');
+  const newScript = document.getElementById('newScript');
+
+  // Verifica se já está logado
+  if (localStorage.getItem('loggedIn') === 'true') {
+    showAdminPanel();
+  }
+
+  function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    if(username === USER && password === PASS) {
+      localStorage.setItem('loggedIn', 'true');
+      loginMsg.textContent = '';
+      showAdminPanel();
+    } else {
+      loginMsg.textContent = 'Usuário ou senha incorretos!';
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('loggedIn');
+    adminPanel.style.display = 'none';
+    loginForm.style.display = 'block';
+  }
+
+  function showAdminPanel() {
+    loginForm.style.display = 'none';
+    adminPanel.style.display = 'block';
+    loadScripts();
+  }
+
+  // Scripts armazenados no localStorage
+  function loadScripts() {
+    scriptsList.innerHTML = '';
+    let scripts = JSON.parse(localStorage.getItem('scripts') || '[]');
+    if (scripts.length === 0) {
+      scriptsList.innerHTML = '<li>Nenhum script adicionado ainda.</li>';
+      return;
+    }
+    scripts.forEach((script, index) => {
+      let li = document.createElement('li');
+      li.textContent = script.length > 50 ? script.slice(0,50) + '...' : script;
+      let btnDel = document.createElement('button');
+      btnDel.textContent = 'Excluir';
+      btnDel.onclick = () => {
+        scripts.splice(index,1);
+        localStorage.setItem('scripts', JSON.stringify(scripts));
+        loadScripts();
+      };
+      li.appendChild(btnDel);
+      scriptsList.appendChild(li);
+    });
+  }
+
+  function addScript() {
+    const scriptText = newScript.value.trim();
+    if(scriptText.length === 0) return alert('Digite ou cole um script!');
+    let scripts = JSON.parse(localStorage.getItem('scripts') || '[]');
+    scripts.push(scriptText);
+    localStorage.setItem('scripts', JSON.stringify(scripts));
+    newScript.value = '';
+    loadScripts();
+  }
+</script>
+
+</body>
+</html>
