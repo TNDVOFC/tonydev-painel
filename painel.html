@@ -70,6 +70,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    white-space: pre-wrap;
   }
   ul li button {
     background: #800000;
@@ -83,7 +84,6 @@
 <header>Painel Admin - Tony Dev</header>
 
 <main>
-  <!-- Login -->
   <div id="loginForm">
     <h2>Login</h2>
     <input type="text" id="username" placeholder="Usuário" />
@@ -92,7 +92,6 @@
     <p id="loginMsg" style="color:#ff4444;"></p>
   </div>
 
-  <!-- Admin Panel -->
   <div id="adminPanel" style="display:none;">
     <h2>Gerenciar Scripts</h2>
 
@@ -106,26 +105,41 @@
   </div>
 </main>
 
-<script>
-  // Usuário e senha fixos (altere aqui)
-  const USER = 'tony';
-  const PASS = 'senha123';
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
-  // Elementos
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAytnlcUSNF1HHJZhq8qHDn_vo9M2EuIwM",
+    authDomain: "tonydev-painel.firebaseapp.com",
+    projectId: "tonydev-painel",
+    storageBucket: "tonydev-painel.appspot.com",
+    messagingSenderId: "867897875624",
+    appId: "1:867897875624:web:19694440a9d21212cf769d",
+    measurementId: "G-8HK8R3DC0Y"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const USER = 'tony'; // usuário fixo
+  const PASS = 'senha123'; // senha fixa
+
   const loginForm = document.getElementById('loginForm');
   const adminPanel = document.getElementById('adminPanel');
   const loginMsg = document.getElementById('loginMsg');
   const scriptsList = document.getElementById('scriptsList');
   const newScript = document.getElementById('newScript');
 
-  // Verifica se já está logado
-  if (localStorage.getItem('loggedIn') === 'true') {
+  if(localStorage.getItem('loggedIn') === 'true') {
     showAdminPanel();
   }
 
   function login() {
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value.trim();
+
     if(username === USER && password === PASS) {
       localStorage.setItem('loggedIn', 'true');
       loginMsg.textContent = '';
@@ -147,37 +161,49 @@
     loadScripts();
   }
 
-  // Scripts armazenados no localStorage
   function loadScripts() {
-    scriptsList.innerHTML = '';
-    let scripts = JSON.parse(localStorage.getItem('scripts') || '[]');
-    if (scripts.length === 0) {
-      scriptsList.innerHTML = '<li>Nenhum script adicionado ainda.</li>';
-      return;
-    }
-    scripts.forEach((script, index) => {
-      let li = document.createElement('li');
-      li.textContent = script.length > 50 ? script.slice(0,50) + '...' : script;
-      let btnDel = document.createElement('button');
-      btnDel.textContent = 'Excluir';
-      btnDel.onclick = () => {
-        scripts.splice(index,1);
-        localStorage.setItem('scripts', JSON.stringify(scripts));
-        loadScripts();
-      };
-      li.appendChild(btnDel);
-      scriptsList.appendChild(li);
-    });
+    scriptsList.innerHTML = '<li>Carregando scripts...</li>';
+    db.collection('scripts').orderBy('createdAt', 'desc').get()
+      .then(snapshot => {
+        scriptsList.innerHTML = '';
+        if(snapshot.empty) {
+          scriptsList.innerHTML = '<li>Nenhum script adicionado ainda.</li>';
+          return;
+        }
+        snapshot.forEach(doc => {
+          const script = doc.data().text;
+          const li = document.createElement('li');
+          li.textContent = script.length > 300 ? script.slice(0,300) + '...' : script;
+
+          const btnDel = document.createElement('button');
+          btnDel.textContent = 'Excluir';
+          btnDel.onclick = () => {
+            db.collection('scripts').doc(doc.id).delete().then(() => {
+              loadScripts();
+            });
+          };
+
+          li.appendChild(btnDel);
+          scriptsList.appendChild(li);
+        });
+      })
+      .catch(() => {
+        scriptsList.innerHTML = '<li>Erro ao carregar scripts.</li>';
+      });
   }
 
   function addScript() {
     const scriptText = newScript.value.trim();
     if(scriptText.length === 0) return alert('Digite ou cole um script!');
-    let scripts = JSON.parse(localStorage.getItem('scripts') || '[]');
-    scripts.push(scriptText);
-    localStorage.setItem('scripts', JSON.stringify(scripts));
-    newScript.value = '';
-    loadScripts();
+    db.collection('scripts').add({
+      text: scriptText,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      newScript.value = '';
+      loadScripts();
+    }).catch(() => {
+      alert('Erro ao adicionar script.');
+    });
   }
 </script>
 
